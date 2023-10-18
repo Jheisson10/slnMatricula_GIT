@@ -1,0 +1,287 @@
+﻿@{
+    ViewBag.Title = "Index";
+}
+<header class="bg-dark py-5">
+    <meta charset="UTF-8" />
+
+    <div class="container px-4 px-lg-5 my-5">
+        <div class="text-center text-white">
+            <p><h1>Matrícula</h1></p>
+        </div>
+    </div>
+
+</header>
+<body>
+
+    <div class="row">
+        <div class="col-sm-8">
+            <div class="col-sm-3">
+                <div class="mb-2">
+                    <label>DNI Estudiante:</label>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="mb-2">
+                    <input type="text" id="txtDni" />
+                </div>
+            </div>
+            <div class="col-sm-2">
+                <button id="btnBuscar" type="button" class="btn btn-primary">
+                    Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+    </br>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="col-sm-2">
+                <label>Nombre Estudiante</label>
+            </div>
+            <div class="col-sm-6">
+                <input type="text" style="width:50px" disabled id="txtCodEstudiante" />
+                <input type="text" style="width:500px" disabled id="txtNombreEstudiante" />
+            </div>
+        </div>
+    </div>
+    </br>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="col-sm-2">
+                <label>Fecha de Matricula</label>
+            </div>
+            <div class="col-sm-10">
+                <input type="date" id="fechamatricula" name="fechamatricula">
+            </div>
+        </div>
+    </div>
+    </br>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="col-sm-2">
+                <label>Tipo de Matricula</label>
+            </div>
+            <div class="col-sm-10">
+                <select id="cboTipomatricula" class="form-select">
+                    <option value="0">Seleccione</option>
+                    <option value="1">Presencial</option>
+                    <option value="2">Remoto</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    </br>
+    </br>
+
+    <div class="card">
+
+
+        <div class="card-body">
+
+            <div class="row">
+                <div class="col-12">
+                    <button type="button" id="btnMatricula" class="btn btn-primary">Registrar Matrícula</button>
+                </div>
+            </div>
+
+            <hr />
+
+            <table id="tabla" class="display cell-border" style="width: 100%">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" /></th>
+                        <th>Curso</th>
+                        <th>Créditos</th>
+                        <th>Sección</th>
+                        <th>Vacantes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/bootstrap")
+</body>
+
+
+
+
+@section scripts{
+    <script src="~/Scripts/jquery-ui.js"></script>
+    @*<script src="js/jquery.min.js" type="text/javascript"></script>
+        <script src="js/jquery.dataTables.min.js" type="text/javascript"></script>*@
+    <script>
+
+        $(document).ready(function () {
+
+
+            $("#btnBuscar").on("click", function () {
+
+                var dni = $("#txtDni").val();
+
+                jQuery.ajax({
+                url: '@Url.Action("BuscarNombre", "Home")',
+                type: "POST",
+                data: JSON.stringify({ dni: dni}),
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                    success: function (data) {
+                        $("#txtNombreEstudiante").val(data.Nombre);
+                        $("#txtCodEstudiante").val(data.IdAlumno);
+                }
+                })
+            })
+
+            let $dt = $('#tabla');
+            let dt = $dt.DataTable({
+            responsive: true,
+            ordering: false,
+            search:false,
+            "ajax": {
+                url: '@Url.Action("ListarVacantes", "Home")',
+                type: "POST",
+                dataType: "json"
+            },
+            "columns": [{
+                render: function (data, type, full, meta) {
+                    return "<input type='checkbox'" + (full.checked ? ' checked' : '') + "/>";
+                }, orderable: false
+                },
+                { "data": "Curso" },
+                { "data": "Creditos" },
+                { "data": "Seccion" },
+                { "data": "Vacante" }
+            ],
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/1.11.3/i18n/es_es.json"
+            }
+        });
+
+            let $total = $('#total');
+
+            // Cuando hacen click en el checkbox del thead
+            $dt.on('change', 'thead input', function (evt) {
+                let checked = this.checked;
+                let total = 0;
+                let data = [];
+
+                dt.data().each(function (info) {
+                    // ACA cambiamos el valor de la propiedad
+                    info.checked = checked;
+                    // ACA accedemos a las propiedades del objeto
+                    /*if (info.checked) total += info.Precio;*/
+                    data.push(info);
+                });
+
+                dt.clear()
+                    .rows.add(data)
+                    .draw();
+                /*$total.val(total);*/
+            });
+
+            // Cuando hacen click en los checkbox del tbody
+            $dt.on('change', 'tbody input', function () {
+                let info = dt.row($(this).closest('tr')).data();
+                /*let total = parseFloat($total.val());*/
+                // ACA accedemos a las propiedades del objeto
+                info.checked = this.checked;
+                //let price = info.Precio;
+                //total += info.checked ? price : price * -1;
+                //$total.val(total);
+            });
+
+
+
+
+            jQuery.ajax({
+            url: '@Url.Action("ListarCurso", "Home")',
+            type: "POST",
+            data: null,
+            dataType: "json",
+            contentType: "application/json; charset=utf-8",
+            success: function (data) {
+
+                $("<option>").attr({ "value": "0"}).text("Seleccionar").appendTo("#cbocurso");
+                $.each(data.data, function (index, item) {
+
+                    $("<option>").attr({ "value": item.IdCurso }).text(item.Nombre).appendTo("#cbocurso");
+                })
+            },
+            error: function (error) {
+                console.log(error)
+            }
+            });
+
+            $("#btnMatricula").on("click", function () {
+
+                var valor = validaciones();
+                console.log(valor)
+                if (valor == 0) {
+
+                    let dt = $('#tabla').DataTable();
+                    let checkeds = dt.data().toArray().filter((data) => data.checked);
+
+                    if (checkeds.length > 0) {
+
+                        for (var i = 0; i < checkeds.length; i++) {
+
+                            var dato = checkeds[i];
+                            console.log("vacante " + dato.IdVacantes)
+
+                            var objeto = new Object();
+                            objeto.id_alumno = $("#txtCodEstudiante").val();
+                            objeto.id_modalidad = $("#cboTipomatricula").val();
+                            objeto.id_vacante = dato.IdVacantes;
+                            objeto.fechaMatricula = $("#fechamatricula").val();
+
+                            var request = new FormData();
+                            request.append("objeto", JSON.stringify(objeto))
+
+                            jQuery.ajax({
+                                url: '@Url.Action("GuardarMatricula", "Home")',
+                                type: "POST",
+                                data: request,
+                                processData: false,
+                                contentType: false,
+                                success: function (data) {
+                                    console.log(data)
+                                }
+                            });
+                        }
+                    } else { alert("Debes seleccionar al menos una vacante") }
+
+
+                } else {
+                    alert("Ingrese todos los campos");
+                }
+
+
+
+
+            })
+
+
+        })
+
+
+        function validaciones() {
+
+            var valor = 0;
+
+            if ($("#txtCodEstudiante").val() == 0) {
+                valor = 1;
+            }
+            else if($("#cboTipomatricula").val() == 0){
+                valor = 1;
+            }
+
+            return valor;
+        }
+
+
+
+
+    </script>
+}
